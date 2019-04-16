@@ -1,10 +1,17 @@
 import java.io._
+import java.nio.file.{Files, Paths}
 
+import io.circe.{Json, ParsingFailure}
 import org.json4s._
 import org.json4s.jackson.Serialization.write
 import org.json4s.jackson.Serialization.read
-import com.commodityvectors.messagepack.MessagePack
-import MessagePack.auto._
+import upickle.default._
+import upickle.default.{macroRW, ReadWriter => RW}
+import io.circe.syntax._
+import io.circe.yaml.parser
+
+import scala.beans.BeanProperty
+import scala.reflect.io.File
 
 object SerializationDemo extends App {
   val cat = new Cat("Kitty",
@@ -12,7 +19,8 @@ object SerializationDemo extends App {
 //  defaultSerialization(cat)
 //  JsonSerialization(cat)
 //  xmlSerialization(cat)
-
+//  messagePackSerialization(cat)
+  
   def defaultSerialization(cat : Cat): Unit = {
     val oos = new ObjectOutputStream(new FileOutputStream("catNative"))
     time (oos.writeObject(cat), "defaultSerializationToFile")
@@ -23,8 +31,15 @@ object SerializationDemo extends App {
   }
 
   def messagePackSerialization(cat: Cat) = {
-    val data = MessagePack.pack(cat)
-
+    val catMP = upickle.default.writeMsg(cat)
+    val bos = new BufferedOutputStream(new FileOutputStream("catMp"))
+    val f = File("catMp")
+    bos.write(writeBinary(catMP))
+    bos.close()
+    // read from file to messagePack
+    val byteArray = Files.readAllBytes(Paths.get("catMp"))
+    val catFF = readBinary[Cat](byteArray)
+    catFF
   }
 
 //  def xmlSerialization(cat : Cat) = {
